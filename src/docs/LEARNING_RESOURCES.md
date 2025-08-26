@@ -73,6 +73,237 @@ const Desktop = () => {
 };
 ```
 
+
+### 4. File System Management
+**OS Theory**: File systems organize data storage, manage directories, and handle file operations with proper permissions and metadata.
+
+**Code Location**: `src/apps/file-manager/FileManager.tsx`
+**Complexity**: 🟢 Beginner → 🟡 Intermediate → 🔴 Advanced
+
+```typescript
+// 🟢 BEGINNER: Basic file operations
+const FileManager = () => {
+  // Maps to OS concept: Directory traversal and file listing
+  const [currentPath, setCurrentPath] = useState('/');
+  const [files, setFiles] = useState<FileItem[]>([]);
+  
+  // Maps to OS concept: File system navigation
+  const navigateToFolder = (path: string) => {
+    setCurrentPath(path);
+    // Simulates OS file system calls
+  };
+};
+
+// 🟡 INTERMEDIATE: File permissions and metadata
+const FileOperations = {
+  // Maps to OS concept: File permission checking
+  checkPermissions: (file: FileItem) => {
+    return file.permissions & 0o755; // Unix-style permissions
+  },
+  
+  // Maps to OS concept: File system metadata
+  getFileStats: (file: FileItem) => ({
+    size: file.size,
+    modified: file.lastModified,
+    type: file.mimeType
+  })
+};
+
+// 🔴 ADVANCED: Virtual file system implementation
+class VirtualFileSystem {
+  private inodeTable = new Map<number, INode>();
+  
+  // Maps to OS concept: Inode-based file system
+  createFile(name: string, content: string): number {
+    const inode = this.allocateInode();
+    this.inodeTable.set(inode, {
+      name,
+      content,
+      permissions: 0o644,
+      links: 1
+    });
+    return inode;
+  }
+}
+```
+
+### 5. Inter-Process Communication (IPC)
+**OS Theory**: IPC mechanisms allow processes to communicate and synchronize, including message passing, shared memory, and event systems.
+
+**Code Location**: `src/stores/window/windowStore.ts`, `src/hooks/useWindowCommunication.ts`
+**Complexity**: 🟡 Intermediate → 🔴 Advanced
+
+```typescript
+// 🟡 INTERMEDIATE: Message passing between windows
+const useWindowCommunication = () => {
+  // Maps to OS concept: Inter-process message queues
+  const sendMessage = (targetWindowId: string, message: any) => {
+    const messageQueue = getWindowMessageQueue(targetWindowId);
+    messageQueue.push({
+      from: getCurrentWindowId(),
+      data: message,
+      timestamp: Date.now()
+    });
+  };
+  
+  // Maps to OS concept: Process synchronization
+  const waitForResponse = async (messageId: string) => {
+    return new Promise((resolve) => {
+      const listener = (response: any) => {
+        if (response.messageId === messageId) {
+          resolve(response.data);
+          removeListener(listener);
+        }
+      };
+      addMessageListener(listener);
+    });
+  };
+};
+
+// 🔴 ADVANCED: Shared memory simulation
+class SharedMemoryManager {
+  private sharedRegions = new Map<string, SharedBuffer>();
+  
+  // Maps to OS concept: Shared memory allocation
+  allocateSharedMemory(key: string, size: number): SharedBuffer {
+    const buffer = new ArrayBuffer(size);
+    const region = {
+      buffer,
+      processes: new Set<string>(),
+      semaphore: new Semaphore(1)
+    };
+    this.sharedRegions.set(key, region);
+    return region;
+  }
+  
+  // Maps to OS concept: Memory synchronization
+  async accessSharedMemory(key: string, processId: string) {
+    const region = this.sharedRegions.get(key);
+    await region.semaphore.acquire();
+    // Critical section access
+    return () => region.semaphore.release();
+  }
+}
+```
+
+### 6. Memory Management
+**OS Theory**: Memory management handles allocation, deallocation, garbage collection, and virtual memory to optimize system performance.
+
+**Code Location**: `src/stores/`, `src/hooks/useMemoryOptimization.ts`
+**Complexity**: 🟡 Intermediate → 🔴 Advanced
+
+```typescript
+// 🟡 INTERMEDIATE: Memory-efficient state management
+const useMemoryOptimization = () => {
+  // Maps to OS concept: Memory pooling and reuse
+  const objectPool = useMemo(() => new Map<string, any[]>(), []);
+  
+  const allocateObject = <T>(type: string, factory: () => T): T => {
+    const pool = objectPool.get(type) || [];
+    if (pool.length > 0) {
+      return pool.pop() as T; // Reuse existing object
+    }
+    return factory(); // Create new object
+  };
+  
+  const releaseObject = <T>(type: string, obj: T) => {
+    const pool = objectPool.get(type) || [];
+    pool.push(obj);
+    objectPool.set(type, pool);
+  };
+};
+
+// 🔴 ADVANCED: Virtual memory simulation
+class VirtualMemoryManager {
+  private pageTable = new Map<number, PageEntry>();
+  private physicalMemory = new ArrayBuffer(1024 * 1024); // 1MB
+  private swapSpace = new Map<number, ArrayBuffer>();
+  
+  // Maps to OS concept: Page fault handling
+  handlePageFault(virtualAddress: number): ArrayBuffer {
+    const pageNumber = Math.floor(virtualAddress / 4096);
+    const pageEntry = this.pageTable.get(pageNumber);
+    
+    if (!pageEntry?.present) {
+      // Maps to OS concept: Page swapping
+      this.loadPageFromSwap(pageNumber);
+    }
+    
+    return this.getPhysicalPage(pageEntry.frameNumber);
+  }
+  
+  // Maps to OS concept: LRU page replacement
+  private evictLRUPage(): number {
+    let oldestPage = -1;
+    let oldestTime = Date.now();
+    
+    for (const [pageNum, entry] of this.pageTable) {
+      if (entry.lastAccessed < oldestTime) {
+        oldestTime = entry.lastAccessed;
+        oldestPage = pageNum;
+      }
+    }
+    
+    return oldestPage;
+  }
+}
+```
+
+### 7. Process Scheduling & Management
+**OS Theory**: Process schedulers manage CPU time allocation, process priorities, and system resource distribution.
+
+**Code Location**: `src/stores/app/appStore.ts`, `src/hooks/useProcessScheduler.ts`
+**Complexity**: 🔴 Advanced
+
+```typescript
+// 🔴 ADVANCED: Process scheduler implementation
+class ProcessScheduler {
+  private processQueue: ProcessControlBlock[] = [];
+  private runningProcess: ProcessControlBlock | null = null;
+  private timeSlice = 100; // 100ms time slice
+  
+  // Maps to OS concept: Round-robin scheduling
+  schedule(): void {
+    if (this.processQueue.length === 0) return;
+    
+    // Context switch
+    if (this.runningProcess) {
+      this.runningProcess.state = ProcessState.READY;
+      this.processQueue.push(this.runningProcess);
+    }
+    
+    // Select next process
+    this.runningProcess = this.processQueue.shift()!;
+    this.runningProcess.state = ProcessState.RUNNING;
+    
+    // Set timer for preemption
+    setTimeout(() => this.schedule(), this.timeSlice);
+  }
+  
+  // Maps to OS concept: Process creation
+  createProcess(appId: string, priority: number): ProcessControlBlock {
+    const pcb: ProcessControlBlock = {
+      pid: this.generatePID(),
+      appId,
+      state: ProcessState.NEW,
+      priority,
+      cpuTime: 0,
+      memoryUsage: 0,
+      createdAt: Date.now()
+    };
+    
+    this.processQueue.push(pcb);
+    return pcb;
+  }
+  
+  // Maps to OS concept: Priority-based scheduling
+  prioritySchedule(): void {
+    this.processQueue.sort((a, b) => b.priority - a.priority);
+    this.schedule();
+  }
+}
+```
+
 ---
 
 ## 📈 Progressive Complexity Guide
