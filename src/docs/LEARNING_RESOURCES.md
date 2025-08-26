@@ -3650,6 +3650,985 @@ Implement multiple virtual desktops:
 - Move windows between desktops
 - Desktop-specific wallpapers and settings
 
+
+## 🎮 Advanced Interactive Learning Modules
+
+### Module 1: Virtual Memory Management Simulator (🔴 Advanced)
+
+**Objective**: Understand how operating systems manage virtual memory, page tables, and memory allocation.
+
+```typescript
+// src/learning-modules/memory-simulator.ts
+
+interface MemoryPage {
+  id: number;
+  virtualAddress: number;
+  physicalAddress: number | null;
+  isLoaded: boolean;
+  isDirty: boolean;
+  lastAccessed: number;
+  processId: string;
+}
+
+interface PageTableEntry {
+  virtualPage: number;
+  physicalFrame: number | null;
+  present: boolean;
+  dirty: boolean;
+  accessed: boolean;
+}
+
+class VirtualMemoryManager {
+  private pageTable: Map<number, PageTableEntry> = new Map();
+  private physicalMemory: (MemoryPage | null)[] = [];
+  private swapSpace: Map<number, MemoryPage> = new Map();
+  private readonly PAGE_SIZE = 4096; // 4KB pages
+  private readonly PHYSICAL_FRAMES = 64; // 256KB physical memory
+  
+  constructor() {
+    // Initialize physical memory frames
+    this.physicalMemory = new Array(this.PHYSICAL_FRAMES).fill(null);
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Page Fault Handling
+   * When a process accesses a virtual address that's not in physical memory,
+   * the OS must handle the page fault by loading the page from storage.
+   */
+  handlePageFault(virtualAddress: number, processId: string): boolean {
+    const virtualPage = Math.floor(virtualAddress / this.PAGE_SIZE);
+    
+    console.log(`📋 Page Fault: Process ${processId} accessing virtual page ${virtualPage}`);
+    
+    // Check if page exists in swap space
+    if (this.swapSpace.has(virtualPage)) {
+      return this.loadFromSwap(virtualPage, processId);
+    }
+    
+    // Allocate new page
+    return this.allocateNewPage(virtualPage, processId);
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Page Replacement Algorithm (LRU)
+   * When physical memory is full, we need to evict a page using
+   * Least Recently Used (LRU) algorithm.
+   */
+  private findLRUFrame(): number {
+    let lruFrame = 0;
+    let oldestTime = Date.now();
+    
+    for (let i = 0; i < this.PHYSICAL_FRAMES; i++) {
+      const page = this.physicalMemory[i];
+      if (page && page.lastAccessed < oldestTime) {
+        oldestTime = page.lastAccessed;
+        lruFrame = i;
+      }
+    }
+    
+    return lruFrame;
+  }
+
+  private loadFromSwap(virtualPage: number, processId: string): boolean {
+    const swappedPage = this.swapSpace.get(virtualPage);
+    if (!swappedPage) return false;
+
+    // Find free frame or evict using LRU
+    let frameIndex = this.physicalMemory.findIndex(frame => frame === null);
+    
+    if (frameIndex === -1) {
+      frameIndex = this.findLRUFrame();
+      this.evictPage(frameIndex);
+    }
+
+    // Load page into physical memory
+    const page: MemoryPage = {
+      ...swappedPage,
+      physicalAddress: frameIndex * this.PAGE_SIZE,
+      isLoaded: true,
+      lastAccessed: Date.now()
+    };
+
+    this.physicalMemory[frameIndex] = page;
+    this.pageTable.set(virtualPage, {
+      virtualPage,
+      physicalFrame: frameIndex,
+      present: true,
+      dirty: false,
+      accessed: true
+    });
+
+    this.swapSpace.delete(virtualPage);
+    
+    console.log(`✅ Page loaded from swap: Virtual ${virtualPage} → Physical Frame ${frameIndex}`);
+    return true;
+  }
+
+  private evictPage(frameIndex: number): void {
+    const page = this.physicalMemory[frameIndex];
+    if (!page) return;
+
+    const virtualPage = Math.floor(page.virtualAddress / this.PAGE_SIZE);
+    
+    // If page is dirty, write to swap
+    if (page.isDirty) {
+      this.swapSpace.set(virtualPage, { ...page, isLoaded: false });
+      console.log(`💾 Page swapped out: Virtual ${virtualPage} (dirty)`);
+    }
+
+    // Update page table
+    this.pageTable.set(virtualPage, {
+      virtualPage,
+      physicalFrame: null,
+      present: false,
+      dirty: page.isDirty,
+      accessed: false
+    });
+
+    this.physicalMemory[frameIndex] = null;
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Memory Translation
+   * Convert virtual addresses to physical addresses using page tables
+   */
+  translateAddress(virtualAddress: number, processId: string): number | null {
+    const virtualPage = Math.floor(virtualAddress / this.PAGE_SIZE);
+    const offset = virtualAddress % this.PAGE_SIZE;
+    
+    const pageEntry = this.pageTable.get(virtualPage);
+    
+    if (!pageEntry || !pageEntry.present) {
+      // Page fault - need to load page
+      if (this.handlePageFault(virtualAddress, processId)) {
+        const updatedEntry = this.pageTable.get(virtualPage);
+        if (updatedEntry && updatedEntry.physicalFrame !== null) {
+          return updatedEntry.physicalFrame * this.PAGE_SIZE + offset;
+        }
+      }
+      return null; // Translation failed
+    }
+    
+    // Update access time for LRU
+    const frame = this.physicalMemory[pageEntry.physicalFrame!];
+    if (frame) {
+      frame.lastAccessed = Date.now();
+      pageEntry.accessed = true;
+    }
+    
+    return pageEntry.physicalFrame! * this.PAGE_SIZE + offset;
+  }
+
+  // Memory statistics for learning
+  getMemoryStats() {
+    const usedFrames = this.physicalMemory.filter(frame => frame !== null).length;
+    const swappedPages = this.swapSpace.size;
+    
+    return {
+      physicalMemoryUsage: `${usedFrames}/${this.PHYSICAL_FRAMES} frames`,
+      swappedPages,
+      pageTableEntries: this.pageTable.size,
+      memoryUtilization: ((usedFrames / this.PHYSICAL_FRAMES) * 100).toFixed(1) + '%'
+    };
+  }
+}
+
+// Usage Example with Educational Commentary
+export function createMemoryLearningDemo() {
+  const vmm = new VirtualMemoryManager();
+  
+  console.log("🎓 Virtual Memory Management Demo");
+  console.log("==================================");
+  
+  // Simulate process memory access patterns
+  const processA = "proc_calculator";
+  const processB = "proc_notepad";
+  
+  // Access pattern that will cause page faults
+  const addresses = [0x1000, 0x2000, 0x3000, 0x1500, 0x2500];
+  
+  addresses.forEach((addr, index) => {
+    console.log(`\n📍 Step ${index + 1}: Process ${processA} accessing address 0x${addr.toString(16)}`);
+    const physicalAddr = vmm.translateAddress(addr, processA);
+    
+    if (physicalAddr !== null) {
+      console.log(`✅ Translation successful: 0x${addr.toString(16)} → 0x${physicalAddr.toString(16)}`);
+    } else {
+      console.log(`❌ Translation failed for address 0x${addr.toString(16)}`);
+    }
+    
+    console.log("📊 Memory Stats:", vmm.getMemoryStats());
+  });
+}
+```
+
+**🎓 Key Learning Outcomes:**
+- **Virtual Memory**: How processes see a larger address space than physical memory
+- **Page Faults**: What happens when accessing non-resident pages
+- **Page Replacement**: LRU algorithm for managing limited physical memory
+- **Address Translation**: Converting virtual to physical addresses
+- **Swap Space**: Using storage as extended memory
+
+### Module 2: Process Synchronization & Deadlock Prevention (🔴 Advanced)
+
+**Objective**: Learn about process synchronization, mutexes, semaphores, and deadlock prevention.
+
+```typescript
+// src/learning-modules/synchronization-simulator.ts
+
+interface Resource {
+  id: string;
+  name: string;
+  isLocked: boolean;
+  lockedBy: string | null;
+  waitQueue: string[];
+}
+
+interface ProcessState {
+  id: string;
+  name: string;
+  state: 'ready' | 'running' | 'blocked' | 'terminated';
+  heldResources: string[];
+  requestedResources: string[];
+  priority: number;
+}
+
+class DeadlockDetector {
+  private processes: Map<string, ProcessState> = new Map();
+  private resources: Map<string, Resource> = new Map();
+  private waitForGraph: Map<string, string[]> = new Map();
+
+  /**
+   * 🎓 LEARNING CONCEPT: Banker's Algorithm for Deadlock Prevention
+   * This algorithm ensures that resource allocation never leads to deadlock
+   * by checking if the system remains in a "safe state" after allocation.
+   */
+  checkSafeState(processId: string, resourceIds: string[]): boolean {
+    // Create a simulation of the allocation
+    const simulation = this.createSimulation();
+    
+    // Try to allocate resources in simulation
+    for (const resourceId of resourceIds) {
+      if (!this.canAllocateResource(simulation, processId, resourceId)) {
+        console.log(`🚫 Unsafe allocation: ${processId} requesting ${resourceId}`);
+        return false;
+      }
+    }
+    
+    // Check if we can find a safe sequence
+    const safeSequence = this.findSafeSequence(simulation);
+    
+    if (safeSequence.length > 0) {
+      console.log(`✅ Safe state maintained. Safe sequence: ${safeSequence.join(' → ')}`);
+      return true;
+    }
+    
+    console.log(`⚠️ Potential deadlock detected for allocation to ${processId}`);
+    return false;
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Wait-For Graph for Deadlock Detection
+   * A directed graph where edges represent waiting relationships.
+   * A cycle in this graph indicates a deadlock.
+   */
+  detectDeadlock(): string[] {
+    this.buildWaitForGraph();
+    
+    const visited = new Set<string>();
+    const recursionStack = new Set<string>();
+    const deadlockedProcesses: string[] = [];
+    
+    for (const processId of this.processes.keys()) {
+      if (!visited.has(processId)) {
+        if (this.hasCycleDFS(processId, visited, recursionStack, deadlockedProcesses)) {
+          console.log(`🔄 Deadlock cycle detected involving: ${deadlockedProcesses.join(', ')}`);
+          return deadlockedProcesses;
+        }
+      }
+    }
+    
+    return [];
+  }
+
+  private buildWaitForGraph(): void {
+    this.waitForGraph.clear();
+    
+    for (const [processId, process] of this.processes) {
+      const waitingFor: string[] = [];
+      
+      // Check what this process is waiting for
+      for (const resourceId of process.requestedResources) {
+        const resource = this.resources.get(resourceId);
+        if (resource && resource.isLocked && resource.lockedBy !== processId) {
+          waitingFor.push(resource.lockedBy!);
+        }
+      }
+      
+      this.waitForGraph.set(processId, waitingFor);
+    }
+  }
+
+  private hasCycleDFS(
+    processId: string, 
+    visited: Set<string>, 
+    recursionStack: Set<string>,
+    deadlockedProcesses: string[]
+  ): boolean {
+    visited.add(processId);
+    recursionStack.add(processId);
+    
+    const neighbors = this.waitForGraph.get(processId) || [];
+    
+    for (const neighbor of neighbors) {
+      if (!visited.has(neighbor)) {
+        if (this.hasCycleDFS(neighbor, visited, recursionStack, deadlockedProcesses)) {
+          deadlockedProcesses.push(processId);
+          return true;
+        }
+      } else if (recursionStack.has(neighbor)) {
+        // Cycle found
+        deadlockedProcesses.push(processId, neighbor);
+        return true;
+      }
+    }
+    
+    recursionStack.delete(processId);
+    return false;
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Resource Allocation with Prevention
+   * Implement resource allocation that prevents deadlock using
+   * ordered resource allocation strategy.
+   */
+  allocateResource(processId: string, resourceId: string): boolean {
+    const process = this.processes.get(processId);
+    const resource = this.resources.get(resourceId);
+    
+    if (!process || !resource) {
+      console.log(`❌ Invalid process (${processId}) or resource (${resourceId})`);
+      return false;
+    }
+    
+    if (resource.isLocked) {
+      if (resource.lockedBy === processId) {
+        console.log(`ℹ️ Process ${processId} already holds resource ${resourceId}`);
+        return true;
+      }
+      
+      // Check for potential deadlock before adding to wait queue
+      if (!this.checkSafeState(processId, [resourceId])) {
+        console.log(`🚫 Resource allocation denied to prevent deadlock`);
+        return false;
+      }
+      
+      // Add to wait queue
+      resource.waitQueue.push(processId);
+      process.requestedResources.push(resourceId);
+      process.state = 'blocked';
+      
+      console.log(`⏳ Process ${processId} waiting for resource ${resourceId}`);
+      return false;
+    }
+    
+    // Allocate resource
+    resource.isLocked = true;
+    resource.lockedBy = processId;
+    process.heldResources.push(resourceId);
+    process.state = 'running';
+    
+    console.log(`✅ Resource ${resourceId} allocated to process ${processId}`);
+    return true;
+  }
+
+  releaseResource(processId: string, resourceId: string): void {
+    const process = this.processes.get(processId);
+    const resource = this.resources.get(resourceId);
+    
+    if (!process || !resource || resource.lockedBy !== processId) {
+      console.log(`❌ Cannot release resource ${resourceId} from process ${processId}`);
+      return;
+    }
+    
+    // Release resource
+    resource.isLocked = false;
+    resource.lockedBy = null;
+    process.heldResources = process.heldResources.filter(r => r !== resourceId);
+    
+    console.log(`🔓 Resource ${resourceId} released by process ${processId}`);
+    
+    // Wake up waiting process (FIFO)
+    if (resource.waitQueue.length > 0) {
+      const nextProcessId = resource.waitQueue.shift()!;
+      const nextProcess = this.processes.get(nextProcessId);
+      
+      if (nextProcess) {
+        nextProcess.requestedResources = nextProcess.requestedResources.filter(r => r !== resourceId);
+        this.allocateResource(nextProcessId, resourceId);
+      }
+    }
+  }
+
+  // Add process and resource management methods
+  addProcess(id: string, name: string, priority: number = 0): void {
+    this.processes.set(id, {
+      id,
+      name,
+      state: 'ready',
+      heldResources: [],
+      requestedResources: [],
+      priority
+    });
+  }
+
+  addResource(id: string, name: string): void {
+    this.resources.set(id, {
+      id,
+      name,
+      isLocked: false,
+      lockedBy: null,
+      waitQueue: []
+    });
+  }
+
+  getSystemState() {
+    return {
+      processes: Array.from(this.processes.values()),
+      resources: Array.from(this.resources.values()),
+      waitForGraph: Object.fromEntries(this.waitForGraph)
+    };
+  }
+}
+
+// Educational Demo
+export function createSynchronizationDemo() {
+  const detector = new DeadlockDetector();
+  
+  console.log("🎓 Process Synchronization & Deadlock Prevention Demo");
+  console.log("====================================================");
+  
+  // Setup system
+  detector.addProcess("P1", "Calculator", 1);
+  detector.addProcess("P2", "Notepad", 2);
+  detector.addProcess("P3", "File Manager", 1);
+  
+  detector.addResource("R1", "Printer");
+  detector.addResource("R2", "Scanner");
+  detector.addResource("R3", "Network");
+  
+  // Simulate resource allocation that could lead to deadlock
+  console.log("\n📋 Step 1: P1 requests Printer");
+  detector.allocateResource("P1", "R1");
+  
+  console.log("\n📋 Step 2: P2 requests Scanner");
+  detector.allocateResource("P2", "R2");
+  
+  console.log("\n📋 Step 3: P1 requests Scanner (will wait)");
+  detector.allocateResource("P1", "R2");
+  
+  console.log("\n📋 Step 4: P2 requests Printer (potential deadlock!)");
+  detector.allocateResource("P2", "R1");
+  
+  // Check for deadlock
+  console.log("\n🔍 Checking for deadlock...");
+  const deadlocked = detector.detectDeadlock();
+  
+  if (deadlocked.length > 0) {
+    console.log(`⚠️ Deadlock detected! Processes: ${deadlocked.join(', ')}`);
+  } else {
+    console.log("✅ No deadlock detected");
+  }
+  
+  console.log("\n📊 Final System State:");
+  console.log(JSON.stringify(detector.getSystemState(), null, 2));
+}
+```
+
+**🎓 Key Learning Outcomes:**
+- **Deadlock Conditions**: Understanding the four necessary conditions
+- **Prevention vs Detection**: Different strategies for handling deadlocks
+- **Banker's Algorithm**: Safe state checking for resource allocation
+- **Wait-For Graphs**: Visual representation of process dependencies
+- **Resource Ordering**: Prevention strategy using ordered allocation
+
+### Module 3: File System Implementation with Journaling (🔴 Advanced)
+
+**Objective**: Build a complete file system with journaling for crash recovery.
+
+```typescript
+// src/learning-modules/filesystem-simulator.ts
+
+interface INode {
+  id: number;
+  name: string;
+  type: 'file' | 'directory';
+  size: number;
+  permissions: number;
+  owner: string;
+  created: Date;
+  modified: Date;
+  accessed: Date;
+  blocks: number[];
+  parent: number | null;
+  children: number[];
+}
+
+interface DataBlock {
+  id: number;
+  data: Uint8Array;
+  checksum: string;
+  isAllocated: boolean;
+}
+
+interface JournalEntry {
+  id: number;
+  timestamp: Date;
+  operation: 'create' | 'delete' | 'modify' | 'move';
+  target: number; // inode id
+  oldData?: any;
+  newData?: any;
+  committed: boolean;
+}
+
+/**
+ * 🎓 LEARNING CONCEPT: Journaling File System
+ * A journaling file system maintains a journal (log) of changes
+ * before they are committed to the main file system structures.
+ * This enables recovery from crashes and maintains consistency.
+ */
+class JournalingFileSystem {
+  private inodes: Map<number, INode> = new Map();
+  private dataBlocks: Map<number, DataBlock> = new Map();
+  private journal: JournalEntry[] = [];
+  private freeInodes: number[] = [];
+  private freeBlocks: number[] = [];
+  private nextInodeId = 1;
+  private nextBlockId = 1;
+  private nextJournalId = 1;
+  
+  constructor(private totalInodes = 1024, private totalBlocks = 4096) {
+    this.initializeFileSystem();
+  }
+
+  private initializeFileSystem(): void {
+    // Initialize free lists
+    for (let i = 1; i <= this.totalInodes; i++) {
+      this.freeInodes.push(i);
+    }
+    for (let i = 1; i <= this.totalBlocks; i++) {
+      this.freeBlocks.push(i);
+    }
+    
+    // Create root directory (inode 0)
+    this.createRootDirectory();
+    
+    console.log(`🗂️ File system initialized: ${this.totalInodes} inodes, ${this.totalBlocks} blocks`);
+  }
+
+  private createRootDirectory(): void {
+    const rootInode: INode = {
+      id: 0,
+      name: '/',
+      type: 'directory',
+      size: 0,
+      permissions: 0o755,
+      owner: 'root',
+      created: new Date(),
+      modified: new Date(),
+      accessed: new Date(),
+      blocks: [],
+      parent: null,
+      children: []
+    };
+    
+    this.inodes.set(0, rootInode);
+    this.freeInodes.shift(); // Remove inode 0 from free list
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Write-Ahead Logging (WAL)
+   * All changes are first written to the journal before being
+   * applied to the actual file system structures.
+   */
+  private writeToJournal(entry: Omit<JournalEntry, 'id' | 'timestamp' | 'committed'>): number {
+    const journalEntry: JournalEntry = {
+      id: this.nextJournalId++,
+      timestamp: new Date(),
+      committed: false,
+      ...entry
+    };
+    
+    this.journal.push(journalEntry);
+    console.log(`📝 Journal entry ${journalEntry.id}: ${entry.operation} on inode ${entry.target}`);
+    
+    return journalEntry.id;
+  }
+
+  private commitJournalEntry(journalId: number): void {
+    const entry = this.journal.find(e => e.id === journalId);
+    if (entry) {
+      entry.committed = true;
+      console.log(`✅ Journal entry ${journalId} committed`);
+    }
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Crash Recovery
+   * After a crash, the file system can recover by replaying
+   * uncommitted journal entries or rolling back partial changes.
+   */
+  recoverFromCrash(): void {
+    console.log("🔄 Starting crash recovery...");
+    
+    const uncommittedEntries = this.journal.filter(e => !e.committed);
+    
+    if (uncommittedEntries.length === 0) {
+      console.log("✅ No recovery needed - all operations were committed");
+      return;
+    }
+    
+    console.log(`🔧 Found ${uncommittedEntries.length} uncommitted operations`);
+    
+    // Replay or rollback uncommitted entries
+    for (const entry of uncommittedEntries) {
+      console.log(`🔄 Recovering operation: ${entry.operation} on inode ${entry.target}`);
+      
+      switch (entry.operation) {
+        case 'create':
+          this.rollbackCreate(entry);
+          break;
+        case 'delete':
+          this.rollbackDelete(entry);
+          break;
+        case 'modify':
+          this.rollbackModify(entry);
+          break;
+      }
+    }
+    
+    // Clean up journal
+    this.journal = this.journal.filter(e => e.committed);
+    console.log("✅ Crash recovery completed");
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: File Creation with Atomic Operations
+   * File creation involves multiple steps that must all succeed
+   * or all fail to maintain consistency.
+   */
+  createFile(parentPath: string, fileName: string, content: string = ''): number | null {
+    const parentInode = this.resolvePath(parentPath);
+    if (!parentInode || parentInode.type !== 'directory') {
+      console.log(`❌ Parent directory not found: ${parentPath}`);
+      return null;
+    }
+    
+    // Check if file already exists
+    if (this.findChildByName(parentInode, fileName)) {
+      console.log(`❌ File already exists: ${fileName}`);
+      return null;
+    }
+    
+    // Allocate inode
+    const inodeId = this.freeInodes.shift();
+    if (inodeId === undefined) {
+      console.log("❌ No free inodes available");
+      return null;
+    }
+    
+    // Start journal transaction
+    const journalId = this.writeToJournal({
+      operation: 'create',
+      target: inodeId,
+      newData: { parentId: parentInode.id, fileName, content }
+    });
+    
+    try {
+      // Create inode
+      const newInode: INode = {
+        id: inodeId,
+        name: fileName,
+        type: 'file',
+        size: content.length,
+        permissions: 0o644,
+        owner: 'user',
+        created: new Date(),
+        modified: new Date(),
+        accessed: new Date(),
+        blocks: [],
+        parent: parentInode.id,
+        children: []
+      };
+      
+      // Allocate data blocks if needed
+      if (content.length > 0) {
+        const blocksNeeded = Math.ceil(content.length / 4096);
+        const allocatedBlocks = this.allocateDataBlocks(blocksNeeded);
+        
+        if (allocatedBlocks.length < blocksNeeded) {
+          throw new Error("Insufficient disk space");
+        }
+        
+        newInode.blocks = allocatedBlocks;
+        this.writeDataToBlocks(allocatedBlocks, content);
+      }
+      
+      // Update parent directory
+      parentInode.children.push(inodeId);
+      parentInode.modified = new Date();
+      
+      // Store inode
+      this.inodes.set(inodeId, newInode);
+      
+      // Commit transaction
+      this.commitJournalEntry(journalId);
+      
+      console.log(`✅ File created: ${parentPath}/${fileName} (inode ${inodeId})`);
+      return inodeId;
+      
+    } catch (error) {
+      console.log(`❌ File creation failed: ${error}`);
+      // Rollback will be handled by recovery if system crashes
+      return null;
+    }
+  }
+
+  /**
+   * 🎓 LEARNING CONCEPT: Directory Traversal and Path Resolution
+   * Converting file paths to inode references through directory traversal
+   */
+  private resolvePath(path: string): INode | null {
+    if (path === '/') {
+      return this.inodes.get(0) || null;
+    }
+    
+    const parts = path.split('/').filter(part => part !== '');
+    let currentInode = this.inodes.get(0); // Start from root
+    
+    for (const part of parts) {
+      if (!currentInode || currentInode.type !== 'directory') {
+        return null;
+      }
+      
+      const childInode = this.findChildByName(currentInode, part);
+      if (!childInode) {
+        return null;
+      }
+      
+      currentInode = childInode;
+      currentInode.accessed = new Date(); // Update access time
+    }
+    
+    return currentInode;
+  }
+
+  private findChildByName(parentInode: INode, name: string): INode | null {
+    for (const childId of parentInode.children) {
+      const childInode = this.inodes.get(childId);
+      if (childInode && childInode.name === name) {
+        return childInode;
+      }
+    }
+    return null;
+  }
+
+  private allocateDataBlocks(count: number): number[] {
+    const allocated: number[] = [];
+    
+    for (let i = 0; i < count && this.freeBlocks.length > 0; i++) {
+      const blockId = this.freeBlocks.shift()!;
+      allocated.push(blockId);
+      
+      // Initialize data block
+      this.dataBlocks.set(blockId, {
+        id: blockId,
+        data: new Uint8Array(4096),
+        checksum: '',
+        isAllocated: true
+      });
+    }
+    
+    return allocated;
+  }
+
+  private writeDataToBlocks(blockIds: number[], content: string): void {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(content);
+    
+    let offset = 0;
+    for (const blockId of blockIds) {
+      const block = this.dataBlocks.get(blockId);
+      if (!block) continue;
+      
+      const chunkSize = Math.min(4096, data.length - offset);
+      block.data.set(data.slice(offset, offset + chunkSize));
+      block.checksum = this.calculateChecksum(block.data);
+      
+      offset += chunkSize;
+      if (offset >= data.length) break;
+    }
+  }
+
+  private calculateChecksum(data: Uint8Array): string {
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      hash = ((hash << 5) - hash + data[i]) & 0xffffffff;
+    }
+    return hash.toString(16);
+  }
+
+  // Recovery helper methods
+  private rollbackCreate(entry: JournalEntry): void {
+    const inode = this.inodes.get(entry.target);
+    if (inode) {
+      // Free allocated blocks
+      for (const blockId of inode.blocks) {
+        this.freeBlocks.push(blockId);
+        this.dataBlocks.delete(blockId);
+      }
+      
+      // Remove from parent
+      if (inode.parent !== null) {
+        const parent = this.inodes.get(inode.parent);
+        if (parent) {
+          parent.children = parent.children.filter(id => id !== entry.target);
+        }
+      }
+      
+      // Free inode
+      this.inodes.delete(entry.target);
+      this.freeInodes.push(entry.target);
+    }
+  }
+
+  private rollbackDelete(entry: JournalEntry): void {
+    // Restore from oldData if available
+    if (entry.oldData) {
+      this.inodes.set(entry.target, entry.oldData);
+    }
+  }
+
+  private rollbackModify(entry: JournalEntry): void {
+    // Restore old data
+    if (entry.oldData) {
+      const inode = this.inodes.get(entry.target);
+      if (inode) {
+        Object.assign(inode, entry.oldData);
+      }
+    }
+  }
+
+  // Utility methods for demonstration
+  listDirectory(path: string): string[] {
+    const dirInode = this.resolvePath(path);
+    if (!dirInode || dirInode.type !== 'directory') {
+      return [];
+    }
+    
+    return dirInode.children.map(childId => {
+      const child = this.inodes.get(childId);
+      return child ? child.name : '';
+    }).filter(name => name !== '');
+  }
+
+  getFileSystemStats() {
+    return {
+      totalInodes: this.totalInodes,
+      usedInodes: this.totalInodes - this.freeInodes.length,
+      totalBlocks: this.totalBlocks,
+      usedBlocks: this.totalBlocks - this.freeBlocks.length,
+      journalEntries: this.journal.length,
+      uncommittedEntries: this.journal.filter(e => !e.committed).length
+    };
+  }
+}
+
+// Educational Demo
+export function createFileSystemDemo() {
+  console.log("🎓 Journaling File System Demo");
+  console.log("==============================");
+  
+  const fs = new JournalingFileSystem(64, 256);
+  
+  // Create some files and directories
+  console.log("\n📁 Creating directory structure...");
+  fs.createFile('/', 'documents', ''); // This would be a directory in full implementation
+  fs.createFile('/', 'readme.txt', 'Welcome to MituOS!');
+  fs.createFile('/', 'config.json', '{"theme": "dark", "language": "en"}');
+  
+  console.log("\n📋 Directory listing for /:");
+  console.log(fs.listDirectory('/'));
+  
+  console.log("\n📊 File System Statistics:");
+  console.log(fs.getFileSystemStats());
+  
+  // Simulate crash and recovery
+  console.log("\n💥 Simulating system crash...");
+  console.log("🔄 Restarting system...");
+  fs.recoverFromCrash();
+  
+  console.log("\n📊 Post-recovery Statistics:");
+  console.log(fs.getFileSystemStats());
+}
+```
+
+**🎓 Key Learning Outcomes:**
+- **Journaling**: Write-ahead logging for crash recovery
+- **Atomic Operations**: Ensuring consistency during file operations
+- **Inode Structure**: How file metadata is stored and managed
+- **Block Allocation**: Managing disk space efficiently
+- **Path Resolution**: Converting file paths to inode references
+- **Crash Recovery**: Restoring system consistency after failures
+
+---
+
+## 🎯 Practical Implementation Challenges
+
+### Challenge 1: Build a Multi-User System (🔴 Advanced)
+Implement user authentication, permissions, and process isolation:
+- User login/logout system
+- File permission checking (read/write/execute)
+- Process ownership and privilege separation
+- Secure inter-user communication
+
+### Challenge 2: Create a Package Manager (🟡 Intermediate)
+Build a system for installing and managing applications:
+- Package dependency resolution
+- Version management
+- Automatic updates
+- Rollback capabilities
+
+### Challenge 3: Implement Virtual Desktops (🟡 Intermediate)
+Create multiple desktop environments:
+- Desktop switching animations
+- Per-desktop wallpapers and settings
+- Window persistence across desktops
+- Keyboard shortcuts for desktop management
+
+### Challenge 4: Build a Network File System (🔴 Advanced)
+Implement remote file access:
+- Client-server communication
+- Caching for performance
+- Conflict resolution
+- Offline synchronization
+
+---
+
+## 🔬 Research Extensions
+
+### Academic Research Topics
+1. **Distributed Operating Systems**: Explore how MituOS concepts could scale across multiple machines
+2. **Real-Time Systems**: Implement priority-based scheduling with deadline guarantees
+3. **Security Models**: Research and implement advanced security paradigms
+4. **Performance Optimization**: Study and apply OS-level performance tuning techniques
+
+### Industry Applications
+1. **Cloud Computing**: How MituOS patterns apply to containerization and orchestration
+2. **Mobile Operating Systems**: Adapting desktop OS concepts for mobile platforms
+3. **Embedded Systems**: Scaling down OS concepts for resource-constrained environments
+4. **Quantum Computing**: Exploring OS concepts for quantum computing platforms
+
 ---
 
 *Made with ❤️ for learning. Star this repo if you found it helpful!*

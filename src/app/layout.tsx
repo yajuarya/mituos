@@ -13,12 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MituOS - Premium Web Desktop Experience",
-  description: "Experience a premium desktop operating system interface in your browser. MituOS offers a complete desktop environment with extensible apps, file management, and modern UI components built with Next.js.",
-  keywords: "web desktop, operating system, browser OS, desktop interface, web apps, file manager, notepad, calculator, system monitor",
-  authors: [{ name: "MituOS Team" }],
-  creator: "MituOS",
-  publisher: "MituOS",
+  title: "MituOS - Educational Web Desktop OS | Learn Operating Systems Interactively",
+  description: "Discover operating system concepts through MituOS - an interactive web desktop built with Next.js. Features educational tutorials, concept mapping, and hands-on learning with apps like notepad, calculator, and file manager.",
+  keywords: "educational OS, operating systems learning, web desktop, interactive tutorials, OS concepts, process management, memory management, file systems, desktop interface, Next.js, TypeScript, educational software",
+  authors: [{ name: "Yaju Arya", url: "http://yajuarya.com" }],
+  creator: "Yaju Arya",
+  publisher: "MituOS Educational Platform",
+  category: "Education Technology",
   formatDetection: {
     email: false,
     address: false,
@@ -26,16 +27,16 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL("http://172.171.199.162:3000"),
   openGraph: {
-    title: "MituOS - Premium Web Desktop Experience",
-    description: "Experience a premium desktop operating system interface in your browser with extensible apps and modern UI.",
+    title: "MituOS - Learn Operating Systems Through Interactive Web Desktop",
+    description: "Master OS concepts with MituOS - an educational web desktop featuring interactive tutorials, concept mapping, and real-world examples. Perfect for students and developers learning operating systems.",
     url: "http://172.171.199.162:3000",
-    siteName: "MituOS",
+    siteName: "MituOS Educational Platform",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "MituOS Desktop Interface",
+        alt: "MituOS Educational Desktop Interface - Learn OS Concepts Interactively",
       },
     ],
     locale: "en_US",
@@ -43,9 +44,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "MituOS - Premium Web Desktop Experience",
-    description: "Experience a premium desktop operating system interface in your browser with extensible apps and modern UI.",
+    title: "MituOS - Interactive OS Learning Platform",
+    description: "Learn operating system concepts through hands-on experience with MituOS web desktop. Educational tutorials, concept mapping, and interactive examples included.",
     images: ["/twitter-image.png"],
+    creator: "@yajuarya",
   },
   robots: {
     index: true,
@@ -64,8 +66,8 @@ export const metadata: Metadata = {
     maximumScale: 1,
   },
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+    { media: "(prefers-color-scheme: light)", color: "#f8fafc" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
   ],
   manifest: "/manifest.json",
   icons: {
@@ -73,8 +75,12 @@ export const metadata: Metadata = {
     shortcut: "/favicon-16x16.png",
     apple: "/apple-touch-icon.png",
   },
+  other: {
+    "educational-content": "operating-systems",
+    "learning-level": "beginner-to-advanced",
+    "interaction-type": "hands-on",
+  },
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
