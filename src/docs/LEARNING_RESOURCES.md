@@ -3027,8 +3027,398 @@ export class LazyAppLoader {
 }
 ```
 
+
+## 🎮 Advanced Interactive Examples
+
+### Example 9: Custom App Development Workshop (🟢 Beginner)
+
+Learn to create your own app from scratch with step-by-step guidance:
+
+```typescript
+// 📝 Step 1: Create app component structure
+// src/apps/my-app/MyApp.tsx
+
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+
+interface MyAppProps {
+  windowId: string;
+}
+
+export const MyApp: React.FC<MyAppProps> = ({ windowId }) => {
+  // 🎯 Learning Point: Component state management
+  const [content, setContent] = useState('Hello MituOS!');
+  
+  // 🎯 Learning Point: Event handling in desktop apps
+  const handleContentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setContent(e.target.value);
+  };
+
+  return (
+    <motion.div 
+      className="p-4 h-full bg-white"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
+      <h2 className="text-lg font-bold mb-4">My Custom App</h2>
+      
+      {/* 🎯 Learning Point: Form controls in desktop environment */}
+      <div className="space-y-4">
+        <input
+          type="text"
+          value={content}
+          onChange={handleContentChange}
+          className="w-full p-2 border rounded"
+          placeholder="Type something..."
+        />
+        
+        <div className="p-4 bg-gray-100 rounded">
+          <strong>Output:</strong> {content}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+```
+
+**🎓 Educational Concepts:**
+- **Component Architecture**: How desktop apps are structured as React components
+- **State Management**: Local state vs global state in desktop applications
+- **Event Handling**: Processing user interactions in a desktop environment
+- **Animation Integration**: Using Framer Motion for smooth app transitions
+
+### Example 10: Multi-Window Communication (🔴 Advanced)
+
+Implement inter-window communication similar to OS inter-process communication:
+
+```typescript
+// 📡 Step 1: Create communication service
+// src/lib/windowCommunication.ts
+
+class WindowCommunicationService {
+  private channels = new Map<string, Set<string>>();
+  private messageHandlers = new Map<string, (data: any) => void>();
+
+  // 🎯 Learning Point: Publisher-Subscriber pattern (like OS message queues)
+  subscribe(windowId: string, channel: string, handler: (data: any) => void) {
+    if (!this.channels.has(channel)) {
+      this.channels.set(channel, new Set());
+    }
+    this.channels.get(channel)!.add(windowId);
+    this.messageHandlers.set(`${windowId}:${channel}`, handler);
+  }
+
+  // 🎯 Learning Point: Broadcasting messages (like OS signals)
+  broadcast(channel: string, data: any, senderWindowId: string) {
+    const subscribers = this.channels.get(channel);
+    if (subscribers) {
+      subscribers.forEach(windowId => {
+        if (windowId !== senderWindowId) {
+          const handler = this.messageHandlers.get(`${windowId}:${channel}`);
+          if (handler) {
+            handler(data);
+          }
+        }
+      });
+    }
+  }
+
+  // 🎯 Learning Point: Cleanup (like process termination)
+  unsubscribe(windowId: string, channel: string) {
+    const subscribers = this.channels.get(channel);
+    if (subscribers) {
+      subscribers.delete(windowId);
+      this.messageHandlers.delete(`${windowId}:${channel}`);
+    }
+  }
+}
+
+export const windowComm = new WindowCommunicationService();
+```
+
+**🎓 Educational Concepts:**
+- **Inter-Process Communication**: How processes communicate in real operating systems
+- **Message Queues**: Asynchronous communication patterns
+- **Event-Driven Architecture**: Reactive programming in desktop environments
+- **Resource Management**: Proper cleanup and memory management
+
+### Example 11: Virtual File System Implementation (🔴 Advanced)
+
+Create a virtual file system that mimics real OS file operations:
+
+```typescript
+// 🗂️ Step 1: Define file system structure
+// src/lib/virtualFileSystem.ts
+
+interface VirtualFile {
+  id: string;
+  name: string;
+  type: 'file' | 'directory';
+  content?: string;
+  size: number;
+  created: Date;
+  modified: Date;
+  parent?: string;
+  children?: string[];
+  permissions: {
+    read: boolean;
+    write: boolean;
+    execute: boolean;
+  };
+}
+
+class VirtualFileSystem {
+  private files = new Map<string, VirtualFile>();
+  private currentDirectory = '/';
+
+  constructor() {
+    // 🎯 Learning Point: Initialize root directory (like OS boot process)
+    this.createDirectory('/', 'root');
+  }
+
+  // 🎯 Learning Point: File creation (like OS system calls)
+  createFile(path: string, name: string, content: string = ''): string {
+    const fileId = `${path}/${name}`.replace('//', '/');
+    const file: VirtualFile = {
+      id: fileId,
+      name,
+      type: 'file',
+      content,
+      size: content.length,
+      created: new Date(),
+      modified: new Date(),
+      parent: path,
+      permissions: { read: true, write: true, execute: false }
+    };
+
+    this.files.set(fileId, file);
+    
+    // Update parent directory
+    const parent = this.files.get(path);
+    if (parent && parent.type === 'directory') {
+      parent.children = parent.children || [];
+      parent.children.push(fileId);
+    }
+
+    return fileId;
+  }
+
+  // 🎯 Learning Point: Directory operations (like mkdir command)
+  createDirectory(path: string, name: string): string {
+    const dirId = `${path}/${name}`.replace('//', '/');
+    const directory: VirtualFile = {
+      id: dirId,
+      name,
+      type: 'directory',
+      size: 0,
+      created: new Date(),
+      modified: new Date(),
+      parent: path === '/' ? undefined : path,
+      children: [],
+      permissions: { read: true, write: true, execute: true }
+    };
+
+    this.files.set(dirId, directory);
+    return dirId;
+  }
+
+  // 🎯 Learning Point: File reading (like OS file I/O)
+  readFile(path: string): string | null {
+    const file = this.files.get(path);
+    if (file && file.type === 'file' && file.permissions.read) {
+      return file.content || '';
+    }
+    return null;
+  }
+
+  // 🎯 Learning Point: Directory listing (like ls command)
+  listDirectory(path: string): VirtualFile[] {
+    const dir = this.files.get(path);
+    if (dir && dir.type === 'directory' && dir.permissions.read) {
+      return (dir.children || [])
+        .map(childId => this.files.get(childId))
+        .filter(Boolean) as VirtualFile[];
+    }
+    return [];
+  }
+}
+
+export const vfs = new VirtualFileSystem();
+```
+
+**🎓 Educational Concepts:**
+- **File System Architecture**: How operating systems organize and manage files
+- **Inode Concepts**: File metadata and directory structures
+- **Permissions System**: Access control in operating systems
+- **Path Resolution**: How file paths are resolved in hierarchical systems
+
+### Example 12: Process Scheduler Simulation (🔴 Advanced)
+
+Implement a simple process scheduler to understand OS scheduling:
+
+```typescript
+// ⚡ Step 1: Define process structure
+// src/lib/processScheduler.ts
+
+interface Process {
+  pid: string;
+  name: string;
+  priority: number;
+  burstTime: number;
+  remainingTime: number;
+  state: 'ready' | 'running' | 'waiting' | 'terminated';
+  createdAt: number;
+  lastExecuted?: number;
+}
+
+class ProcessScheduler {
+  private processes = new Map<string, Process>();
+  private readyQueue: string[] = [];
+  private runningProcess: string | null = null;
+  private timeQuantum = 100; // milliseconds
+
+  // 🎯 Learning Point: Process creation (like fork() system call)
+  createProcess(name: string, burstTime: number, priority: number = 0): string {
+    const pid = `proc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    const process: Process = {
+      pid,
+      name,
+      priority,
+      burstTime,
+      remainingTime: burstTime,
+      state: 'ready',
+      createdAt: Date.now()
+    };
+
+    this.processes.set(pid, process);
+    this.addToReadyQueue(pid);
+    
+    return pid;
+  }
+
+  // 🎯 Learning Point: Priority-based scheduling
+  private addToReadyQueue(pid: string) {
+    const process = this.processes.get(pid);
+    if (!process) return;
+
+    // Insert based on priority (higher priority first)
+    let insertIndex = this.readyQueue.length;
+    for (let i = 0; i < this.readyQueue.length; i++) {
+      const queueProcess = this.processes.get(this.readyQueue[i]);
+      if (queueProcess && queueProcess.priority < process.priority) {
+        insertIndex = i;
+        break;
+      }
+    }
+    
+    this.readyQueue.splice(insertIndex, 0, pid);
+    process.state = 'ready';
+  }
+
+  // 🎯 Learning Point: Context switching
+  private contextSwitch() {
+    if (this.runningProcess) {
+      const currentProcess = this.processes.get(this.runningProcess);
+      if (currentProcess && currentProcess.remainingTime > 0) {
+        // Preempt current process
+        this.addToReadyQueue(this.runningProcess);
+      }
+    }
+
+    // Select next process
+    if (this.readyQueue.length > 0) {
+      this.runningProcess = this.readyQueue.shift()!;
+      const nextProcess = this.processes.get(this.runningProcess);
+      if (nextProcess) {
+        nextProcess.state = 'running';
+        nextProcess.lastExecuted = Date.now();
+      }
+    } else {
+      this.runningProcess = null;
+    }
+  }
+
+  // 🎯 Learning Point: Process execution simulation
+  executeTimeSlice(): { completed: string[], running: string | null } {
+    const completed: string[] = [];
+
+    if (this.runningProcess) {
+      const process = this.processes.get(this.runningProcess);
+      if (process) {
+        // Simulate execution
+        const executionTime = Math.min(this.timeQuantum, process.remainingTime);
+        process.remainingTime -= executionTime;
+
+        if (process.remainingTime <= 0) {
+          // Process completed
+          process.state = 'terminated';
+          completed.push(this.runningProcess);
+          this.runningProcess = null;
+        }
+      }
+    }
+
+    // Schedule next process if needed
+    if (!this.runningProcess && this.readyQueue.length > 0) {
+      this.contextSwitch();
+    }
+
+    return { completed, running: this.runningProcess };
+  }
+
+  // 🎯 Learning Point: System monitoring
+  getSystemStatus() {
+    const processes = Array.from(this.processes.values());
+    return {
+      totalProcesses: processes.length,
+      readyProcesses: processes.filter(p => p.state === 'ready').length,
+      runningProcesses: processes.filter(p => p.state === 'running').length,
+      terminatedProcesses: processes.filter(p => p.state === 'terminated').length,
+      readyQueue: this.readyQueue.length,
+      currentProcess: this.runningProcess
+    };
+  }
+}
+
+export const scheduler = new ProcessScheduler();
+```
+
+**🎓 Educational Concepts:**
+- **Process Scheduling**: How operating systems manage CPU time allocation
+- **Context Switching**: The mechanism of switching between processes
+- **Priority Queues**: Data structures used in OS scheduling algorithms
+- **Time Slicing**: Round-robin scheduling implementation
+
+## 🔬 Hands-On Exercises
+
+### Exercise 1: Build a Text Editor App
+Create a fully functional text editor with the following features:
+- File operations (new, open, save)
+- Text formatting (bold, italic, font size)
+- Find and replace functionality
+- Auto-save capability
+
+### Exercise 2: Implement Window Snapping
+Add window snapping functionality similar to Windows Aero Snap:
+- Drag to edges for half-screen snap
+- Corner snapping for quarter-screen
+- Keyboard shortcuts for window arrangement
+
+### Exercise 3: Create a System Resource Monitor
+Build a real-time system monitor that displays:
+- Active applications and their resource usage
+- Memory consumption visualization
+- CPU usage simulation
+- Network activity indicators
+
+### Exercise 4: Design a Virtual Desktop System
+Implement multiple virtual desktops:
+- Switch between different desktop environments
+- Move windows between desktops
+- Desktop-specific wallpapers and settings
+
 ---
 
-*Made with ❤️ for learning. Contribute to make this educational resource even better!*
-
-*Made with ❤️ for learning. Contribute to make this educational resource even better!*
+*Made with ❤️ for learning. Star this repo if you found it helpful!*
