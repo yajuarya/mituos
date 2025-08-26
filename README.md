@@ -207,15 +207,227 @@ We welcome contributions to MituOS! Here's how you can help:
 4. Start developing!
 
 ## License
+## User Experience
+
+MituOS provides an intuitive desktop environment that mirrors real operating system interactions:
+
+### Educational Learning Path
+- **Beginner**: Start with basic window operations and file management
+- **Intermediate**: Explore process management and system monitoring
+- **Advanced**: Dive into performance optimization and custom app development
+
+### Interactive Features
+- **Drag & Drop**: Learn file system operations through intuitive interactions
+- **Multi-Window Management**: Understand process scheduling and memory management
+- **Real-time Monitoring**: Observe system performance metrics and resource allocation
+
+## Data Management
+
+### Local Storage Strategy
+- **Window States**: Persistent window positions and sizes using localStorage
+- **App Preferences**: User settings and configurations stored locally
+- **File System Simulation**: Virtual file system with hierarchical structure
+
+### Performance Considerations
+- **Lazy Loading**: Apps load only when needed, simulating OS process creation
+- **Memory Management**: Efficient component unmounting and cleanup
+- **State Optimization**: Zustand stores for minimal re-renders
+
+## Environment Variables
+
+Create a `.env.local` file in the root directory:
+
+```env
+# Application Configuration
+NEXT_PUBLIC_APP_NAME=MituOS
+NEXT_PUBLIC_APP_VERSION=1.0.0
+
+# Development Settings
+NEXT_PUBLIC_DEBUG_MODE=false
+NEXT_PUBLIC_ENABLE_ANALYTICS=false
+
+# Educational Features
+NEXT_PUBLIC_SHOW_TUTORIALS=true
+NEXT_PUBLIC_CONCEPT_MAPPING=true
+```
+
+## Project Structure
+
+```
+src/
+├── app/                    # Next.js 13+ app directory
+│   ├── layout.tsx         # Root layout with educational meta tags
+│   └── page.tsx           # Main desktop interface
+├── components/            # Reusable UI components
+│   ├── desktop/          # Desktop environment components
+│   │   ├── Desktop.tsx   # 🎓 Main desktop with window management
+│   │   └── Taskbar.tsx   # 🎓 System taskbar with app launcher
+│   ├── window/           # Window management system
+│   │   ├── Window.tsx    # 🎓 Draggable/resizable window component
+│   │   └── WindowManager.tsx # 🎓 Multi-window orchestration
+│   └── ui/               # Basic UI primitives
+├── apps/                 # Built-in applications
+│   ├── notepad/         # 🎓 Text editor with file operations
+│   ├── calculator/      # 🎓 Scientific calculator
+│   ├── file-manager/    # 🎓 File system browser
+│   ├── settings/        # 🎓 System configuration
+│   └── system-monitor/  # 🎓 Performance monitoring
+├── stores/              # State management
+│   ├── windowStore.ts   # 🎓 Window lifecycle management
+│   ├── desktopStore.ts  # 🎓 Desktop state and interactions
+│   └── appStore.ts      # 🎓 Application registry
+├── hooks/               # Custom React hooks
+├── lib/                 # Utility functions
+├── types/               # TypeScript definitions
+├── docs/                # Educational documentation
+│   └── LEARNING_RESOURCES.md # 🎓 Comprehensive learning guide
+└── __tests__/           # Test suites with educational comments
+```
+
+🎓 = Components with educational annotations and OS concept explanations
+
+## Usage Guide
+
+### For Learners
+
+1. **Start with Basics**:
+   ```bash
+   # Clone and explore the codebase
+   git clone https://github.com/yajuarya/mituos.git
+   cd mituos
+   npm install
+   ```
+
+2. **Follow Learning Path**:
+   - Read `src/docs/LEARNING_RESOURCES.md` for concept mapping
+   - Examine component annotations for OS theory connections
+   - Run tests to understand system behavior
+
+3. **Interactive Learning**:
+   - Open multiple apps to see process management
+   - Resize windows to understand memory allocation
+   - Monitor system performance in real-time
+
+### For Developers
+
+1. **Adding New Apps**:
+   ```typescript
+   // Create app component in src/apps/your-app/
+   // Register in src/stores/appStore.ts
+   // Add educational annotations following existing patterns
+   ```
+
+2. **Educational Annotations**:
+   ```typescript
+   // 🎓 OS Concept: Process Creation
+   // This component demonstrates how operating systems
+   // manage application lifecycle and resource allocation
+   ```
+
+## API Endpoints
+
+### Window Management API
+- `windowStore.openWindow(appId, props)` - Create new process
+- `windowStore.closeWindow(windowId)` - Terminate process
+- `windowStore.focusWindow(windowId)` - Context switching
+- `windowStore.minimizeWindow(windowId)` - Process suspension
+
+### Desktop API  
+- `desktopStore.addShortcut(app)` - Add desktop icon
+- `desktopStore.removeShortcut(appId)` - Remove desktop icon
+- `desktopStore.updateWallpaper(url)` - Change desktop background
+
+### App Registry API
+- `appStore.registerApp(appConfig)` - Register new application
+- `appStore.getApp(appId)` - Retrieve app configuration
+- `appStore.listApps()` - Get all available applications
+
+## Development
+
+### Educational Development Approach
+
+This project follows **Learning-Driven Development (LDD)**:
+
+1. **Code with Context**: Every component includes educational comments
+2. **Theory Integration**: Real OS concepts mapped to code implementations
+3. **Progressive Complexity**: Features organized from beginner to advanced
+4. **Interactive Examples**: Small, isolated code snippets for learning
+
+### Best Practices
+
+```typescript
+// ✅ Good: Educational annotation with OS concept
+// 🎓 OS Concept: Inter-Process Communication (IPC)
+// This event system simulates how processes communicate
+// in real operating systems through message passing
+const handleAppMessage = (message: AppMessage) => {
+  // Implementation with learning context
+};
+
+// ❌ Avoid: Code without educational context
+const handleMessage = (msg) => {
+  // Implementation without learning value
+};
+```
+
+### Testing Philosophy
+
+- **TDD with Education**: Tests explain expected behavior and OS parallels
+- **Behavioral Testing**: Focus on user interactions and system responses
+- **Performance Testing**: Measure and explain resource usage patterns
+
+### Running Tests
+
+```bash
+# Unit tests with educational output
+npm test
+
+# E2E tests with system behavior validation
+npm run test:e2e
+
+# Performance tests with resource monitoring
+npm run test:performance
+```
+
+## Contributing
+
+### Educational Contribution Guidelines
+
+1. **Code Contributions**:
+   - Add educational annotations for OS concepts
+   - Include progressive complexity indicators
+   - Provide interactive examples where applicable
+
+2. **Documentation**:
+   - Link code sections to OS theory
+   - Create concept mapping diagrams
+   - Write beginner-friendly explanations
+
+3. **Testing**:
+   - Write tests that explain system behavior
+   - Include performance implications
+   - Add educational comments in test cases
+
+### Contribution Process
+
+1. Fork the repository
+2. Create feature branch: `git checkout -b feature/educational-enhancement`
+3. Add educational annotations to your code
+4. Write comprehensive tests with learning context
+5. Update documentation with concept mappings
+6. Submit pull request with educational impact description
+
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## About the Creator
 
 **Yaju Arya**  
-Full-stack developer passionate about creating innovative web experiences.  
+Full-stack developer passionate about creating innovative web experiences and educational technology.  
 🌐 [yajuarya.com](http://yajuarya.com)
 
 ---
 
+Made with ❤️. Star this repo if you found it helpful!
 Made with ❤️. Star this repo if you found it helpful!
